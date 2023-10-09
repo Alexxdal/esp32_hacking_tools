@@ -14,17 +14,12 @@ typedef struct __attribute__((packed)) {
     char pairwise_chipers[LIBWIFI_SECURITY_BUF_LEN];
     char auth_key_suites[LIBWIFI_SECURITY_BUF_LEN];
 } beacon_data_t;
-beacon_data_t scan_results[MAX_SCAN_RESULTS];
-uint8_t current_scan_result = 0;
-
 
 typedef struct __attribute__((packed)){
     unsigned char bssid[6];
     uint32_t frames;
     int8_t signal;
 } station_t;
-station_t assoc_station[MAX_STATION];
-uint8_t current_station = 0;
 
 
 /*

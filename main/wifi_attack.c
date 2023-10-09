@@ -33,6 +33,11 @@ volatile bool hshake2 = false;
 volatile bool hshake3 = false;
 volatile bool hshake4 = false;
 
+beacon_data_t scan_results[MAX_SCAN_RESULTS];
+uint8_t current_scan_result = 0;
+station_t assoc_station[MAX_STATION];
+uint8_t current_station = 0;
+
 /*
 * This variable is used to store the HANDSHAKE MESSAGE M1 sender
 * to ensure that other messager are from the same handshake sequence

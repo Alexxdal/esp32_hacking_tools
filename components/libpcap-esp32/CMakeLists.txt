@@ -2,7 +2,6 @@ if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET ST
   set(COMPONENT_SRCS
     pcap_file_generator.c
 	pcap_file_reader.c
-	sample.c
 	utils.c
     )
 
