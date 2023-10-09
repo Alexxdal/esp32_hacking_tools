@@ -14,8 +14,15 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_spi_flash.h"
+#include "esp_vfs_fat.h"
 #include "nvs_flash.h"
 #include "wifi_attack.h"
+
+static const char* TAG = "MAIN";
+// Handle of the wear levelling library instance
+static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
+// Mount path for the partition
+const char *base_path = "/fat";
 
 /*
 * Print memory debug information
@@ -39,7 +46,20 @@ void app_main(void)
     wifi_attack_init();
     set_channel(5);
     //xTaskCreate(&print_free_heap, "print_free_heap", 4096, NULL, 6, NULL);
-    
+    // To mount device we need name of device partition, define base_path
+    // and allow format partition in case if it is new one and was not formated before
+    const esp_vfs_fat_mount_config_t mount_config = {
+        .max_files = 20,
+        .format_if_mount_failed = true,
+        .allocation_unit_size = CONFIG_WL_SECTOR_SIZE
+    };
+    esp_err_t err = esp_vfs_fat_spiflash_mount(base_path, "storage", &mount_config, &s_wl_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
+        return NULL;
+    }
+    ESP_LOGI(TAG, "Mounted FATFS");
+
     while(true)
     {
         SendDeauth(broadcast, filter_mac, 7);
@@ -48,7 +68,7 @@ void app_main(void)
         SendDeauth(broadcast, filter_mac, 7);
         SendDeauth(broadcast, filter_mac, 7);
         SendDeauth(broadcast, filter_mac, 7);
-        vTaskDelay( 200000 / portTICK_PERIOD_MS);
+        vTaskDelay( 500000 / portTICK_PERIOD_MS);
     }
     
     esp_restart();

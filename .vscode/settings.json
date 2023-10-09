@@ -16,7 +16,18 @@
     "files.associations": {
         "*.embeddedhtml": "html",
         "esp_wifi.h": "c",
-        "libwifi.h": "c"
+        "libwifi.h": "c",
+        "simd-intrinsics.h": "c",
+        "jcommon.h": "c",
+        "memory.h": "c",
+        "pseudo_intrinsics.h": "c",
+        "wpapsk.h": "c",
+        "johnswap.h": "c",
+        "crypto_engine.h": "c",
+        "crypto.h": "c",
+        "avl_tree.h": "c",
+        "*.ipp": "c",
+        "esp_vfs.h": "c"
     },
     "idf.flashType": "UART"
 }
