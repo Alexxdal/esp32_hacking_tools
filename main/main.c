@@ -13,41 +13,39 @@
 #include "esp_system.h"
 #include "esp_event.h"
 #include "esp_log.h"
-#include "esp_spi_flash.h"
+#include "spi_flash_mmap.h"
 #include "esp_vfs_fat.h"
 #include "nvs_flash.h"
-#include "wifi_attack.h"
+#include "wifi_controller.h"
 
 static const char* TAG = "MAIN";
-// Handle of the wear levelling library instance
-static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
-// Mount path for the partition
-const char *base_path = "/fat";
-
-/*
-* Print memory debug information
-*/
-static void print_free_heap(void *args){
-    while(true){
-        ESP_EARLY_LOGI("MEM", "Free heap size: %d\tMin free heap: %d.", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
-        //ESP_EARLY_LOGI("MEM", "FIRMWARE AGGIORNATO DIOCANE!!!.");
-        fflush(stdout);
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
-}
-
-static unsigned char filter_mac[] = { 0x80, 0x16, 0x05, 0x74, 0x28, 0x41 };
-static unsigned char broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 void app_main(void)
 {
     nvs_flash_init();
-    set_filter_enable(filter_mac, true);
-    wifi_attack_init();
-    set_channel(5);
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    wifictl_mgmt_ap_start();
+    //set_filter_enable(filter_mac, true);
+    //wifi_attack_init();
+    //set_channel(5);
     //xTaskCreate(&print_free_heap, "print_free_heap", 4096, NULL, 6, NULL);
     // To mount device we need name of device partition, define base_path
     // and allow format partition in case if it is new one and was not formated before
+    while(true)
+    {
+        //SendDeauth(broadcast, filter_mac, 7);
+        vTaskDelay( 500000 / portTICK_PERIOD_MS);
+    }
+    esp_restart();
+}
+
+void fat_mount(void)
+{
+    // Handle of the wear levelling library instance
+    static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
+    // Mount path for the partition
+    const char *base_path = "/fat";
+
     const esp_vfs_fat_mount_config_t mount_config = {
         .max_files = 20,
         .format_if_mount_failed = true,
@@ -58,17 +56,16 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
     }
     ESP_LOGI(TAG, "Mounted FATFS");
+}
 
-    while(true)
-    {
-        SendDeauth(broadcast, filter_mac, 7);
-        SendDeauth(broadcast, filter_mac, 7);
-        SendDeauth(broadcast, filter_mac, 7);
-        SendDeauth(broadcast, filter_mac, 7);
-        SendDeauth(broadcast, filter_mac, 7);
-        SendDeauth(broadcast, filter_mac, 7);
-        vTaskDelay( 500000 / portTICK_PERIOD_MS);
+/*
+* Print memory debug information
+*/
+void print_free_heap(void *args){
+    while(true){
+        ESP_EARLY_LOGI("MEM", "Free heap size: %d\tMin free heap: %d.", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
+        //ESP_EARLY_LOGI("MEM", "FIRMWARE AGGIORNATO DIOCANE!!!.");
+        fflush(stdout);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
-    
-    esp_restart();
 }

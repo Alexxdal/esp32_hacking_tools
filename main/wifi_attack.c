@@ -10,15 +10,6 @@
 #include "wifi_attack.h"
 #include "../components/libpcap-esp32/libpcap_file_generator.h"
 
-
-esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
-void wifi_sniffer_packet_handler(void *buff, wifi_promiscuous_pkt_type_t type);
-//Bypass esp32 lock
-int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3) {
-  return 0;
-}
-
-
 /*
 * Static variables
 */
