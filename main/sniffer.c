@@ -14,6 +14,7 @@ static unsigned char mac_filter[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 static bool apply_filter = false;
 ESP_EVENT_DEFINE_BASE(SNIFFER_EVENTS);
 
+
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
     return 0;
@@ -196,4 +197,9 @@ void wifictl_sniffer_start(uint8_t channel) {
 void wifictl_sniffer_stop() {
     ESP_LOGI(TAG, "Stopping promiscuous mode...");
     esp_wifi_set_promiscuous(false);
+}
+
+void wifictl_set_channel(uint8_t channel)
+{
+    esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
 }

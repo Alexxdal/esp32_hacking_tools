@@ -68,4 +68,11 @@ void wifictl_sniffer_start(uint8_t channel);
  */
 void wifictl_sniffer_stop();
 
+/**
+ * @brief Start ap given channel
+ * 
+ * @param channel channel on which sniffer should operate
+ */
+void wifictl_set_channel(uint8_t channel)
+
 #endif

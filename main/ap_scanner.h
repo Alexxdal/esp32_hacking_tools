@@ -14,6 +14,8 @@ typedef struct {
     wifi_ap_record_t records[CONFIG_SCAN_MAX_AP];
 } wifictl_ap_records_t;
 
+
+
 /**
  * @brief Switches ESP into scanning mode and stores result.
  * 
