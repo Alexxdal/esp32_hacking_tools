@@ -17,20 +17,23 @@
 #include "esp_vfs_fat.h"
 #include "nvs_flash.h"
 #include "wifi_controller.h"
+#include "scanner_advanced.h"
 
 static const char* TAG = "MAIN";
+void print_free_heap(void *args);
 
 void app_main(void)
 {
     nvs_flash_init();
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    wifictl_mgmt_ap_start();
+    wifi_init();
     //set_filter_enable(filter_mac, true);
     //wifi_attack_init();
     //set_channel(5);
     //xTaskCreate(&print_free_heap, "print_free_heap", 4096, NULL, 6, NULL);
     // To mount device we need name of device partition, define base_path
     // and allow format partition in case if it is new one and was not formated before
+    passive_scan_start();
     while(true)
     {
         //SendDeauth(broadcast, filter_mac, 7);

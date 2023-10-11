@@ -15,12 +15,46 @@ static const char* TAG = "wifi_controller";
 /**
  * @brief Stores current state of Wi-Fi interface
  */
-static bool wifi_init = false;
+static bool wifi_init_flag = false;
 static uint8_t original_mac_ap[6];
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data){
 
 }
+
+
+void wifi_init( void )
+{
+    wifi_country_t wifi_country = {
+        .cc = "IT",
+        .schan = 1,
+        .nchan = 13,
+        .policy = WIFI_COUNTRY_POLICY_AUTO
+    };
+    //RX INTERFACE SETUP
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+
+    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
+    ESP_ERROR_CHECK( esp_wifi_set_country(&wifi_country) ); /* set country for channel range [1, 13] */
+    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
+    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_APSTA));
+    //TX INTERFACE SETUP
+	wifi_config_t ap_config = {
+		.ap = {
+			.ssid = "ESPTool",
+            .ssid_len = strlen("ESPTool"),
+			.password = "123456789",
+			.channel = 8,
+			.authmode = WIFI_AUTH_WPA2_PSK,
+			.ssid_hidden = 0,
+			.max_connection = 4
+		}
+	};
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+}
+
 
 /**
  * @brief Initializes Wi-Fi interface into APSTA mode and starts it.
@@ -29,10 +63,6 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
  */
 static void wifi_init_apsta(){
     ESP_ERROR_CHECK(esp_netif_init());
-
-    esp_netif_create_default_wifi_ap();
-    esp_netif_create_default_wifi_sta();
-
     wifi_init_config_t wifi_init_config = WIFI_INIT_CONFIG_DEFAULT();
 
     ESP_ERROR_CHECK(esp_wifi_init(&wifi_init_config));
@@ -45,12 +75,12 @@ static void wifi_init_apsta(){
     ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_AP, original_mac_ap));
 
     ESP_ERROR_CHECK(esp_wifi_start());
-    wifi_init = true;
+    wifi_init_flag = true;
 }
 
 void wifictl_ap_start(wifi_config_t *wifi_config) {
     ESP_LOGD(TAG, "Starting AP...");
-    if(!wifi_init){
+    if(!wifi_init_flag){
         wifi_init_apsta();
     }
 
@@ -86,7 +116,7 @@ void wifictl_mgmt_ap_start(){
 
 void wifictl_sta_connect_to_ap(const wifi_ap_record_t *ap_record, const char password[]){
     ESP_LOGD(TAG, "Connecting STA to AP...");
-    if(!wifi_init){
+    if(!wifi_init_flag){
         wifi_init_apsta();
     }
 

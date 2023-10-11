@@ -21,7 +21,7 @@ int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
 }
 
 
-IRAM_ATTR void wifi_sniffer_packet_handler(void *buff, wifi_promiscuous_pkt_type_t type)
+static void wifi_sniffer_packet_handler(void *buff, wifi_promiscuous_pkt_type_t type)
 {
     ESP_LOGV(TAG, "Captured frame %d.", (int) type);
     int has_radiotap = 0;
@@ -163,8 +163,7 @@ IRAM_ATTR void wifi_sniffer_packet_handler(void *buff, wifi_promiscuous_pkt_type
                 break;
         }
     }
-
-    ESP_ERROR_CHECK(esp_event_post(SNIFFER_EVENTS, event_id, ppkt, ppkt->rx_ctrl.sig_len + sizeof(wifi_promiscuous_pkt_t), portMAX_DELAY));
+    ESP_ERROR_CHECK(esp_event_post(SNIFFER_EVENTS, event_id, ppkt, ppkt->rx_ctrl.sig_len + sizeof(wifi_promiscuous_pkt_t), 0U));
 free_mem:
     libwifi_free_wifi_frame(&frame);
     return;
@@ -197,9 +196,4 @@ void wifictl_sniffer_start(uint8_t channel) {
 void wifictl_sniffer_stop() {
     ESP_LOGI(TAG, "Stopping promiscuous mode...");
     esp_wifi_set_promiscuous(false);
-}
-
-void wifictl_set_channel(uint8_t channel)
-{
-    esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
 }

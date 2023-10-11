@@ -8,6 +8,8 @@
 #include "ap_scanner.h"
 #include "esp_wifi_types.h"
 
+void wifi_init( void );
+
 /**
  * @brief Starts AP with given config
  * 
