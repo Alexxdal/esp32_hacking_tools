@@ -18,6 +18,7 @@
 #include "nvs_flash.h"
 #include "wifi_controller.h"
 #include "scanner_advanced.h"
+#include "wps.h"
 
 static const char* TAG = "MAIN";
 void print_free_heap(void *args);
@@ -33,7 +34,8 @@ void app_main(void)
     //xTaskCreate(&print_free_heap, "print_free_heap", 4096, NULL, 6, NULL);
     // To mount device we need name of device partition, define base_path
     // and allow format partition in case if it is new one and was not formated before
-    passive_scan_start();
+    //passive_scan_start();
+    wps_attack_start();
     while(true)
     {
         //SendDeauth(broadcast, filter_mac, 7);

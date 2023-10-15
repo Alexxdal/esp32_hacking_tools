@@ -37,20 +37,13 @@ void wifi_init( void )
     ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
     ESP_ERROR_CHECK( esp_wifi_set_country(&wifi_country) ); /* set country for channel range [1, 13] */
     ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
-    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_APSTA));
+    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_AP));
     //TX INTERFACE SETUP
 	wifi_config_t ap_config = {
 		.ap = {
-			.ssid = "ESPTool",
-            .ssid_len = strlen("ESPTool"),
-			.password = "123456789",
-			.channel = 8,
-			.authmode = WIFI_AUTH_WPA2_PSK,
-			.ssid_hidden = 0,
-			.max_connection = 4
 		}
 	};
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
+    //ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 }

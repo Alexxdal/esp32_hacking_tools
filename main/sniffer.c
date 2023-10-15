@@ -30,7 +30,7 @@ static void wifi_sniffer_packet_handler(void *buff, wifi_promiscuous_pkt_type_t 
     /*
     * Check frame lenght
     */
-    if (ppkt->rx_ctrl.sig_len < 100){
+    if (ppkt->rx_ctrl.sig_len < 40){
         return;
     }
     /*
