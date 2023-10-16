@@ -1,7 +1,7 @@
 #ifndef EAPOL_PACKET_H
 #define EAPOL_PACKET_H
 
-#include "../components/libwifi-esp32/src/libwifi/core/frame/frame.h"
+#include "../../components/libwifi-esp32/src/libwifi/core/frame/frame.h"
 #include <stdint.h>
 
 #define SNAP 0xaa
